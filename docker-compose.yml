@@ -1,0 +1,28 @@
+version: "3.8"
+services:
+  postgres_db:
+    container_name: postgres_container
+    image: postgres:13
+    restart: always
+    environment:
+      POSTGRES_USER: xayrulloh
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: urls
+    volumes:
+      - postgres_db:/data/db
+    ports:
+      - 5434:5432
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}" ]
+      interval: 5s
+      timeout: 20s
+      retries: 3
+  api:
+    depends_on:
+      postgres_db:
+        condition: service_healthy
+    build: .
+    ports:
+      - 3000:3000
+volumes:
+  postgres_db: {}

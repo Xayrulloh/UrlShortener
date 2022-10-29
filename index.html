@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous" />
+    <title>Best Url Shortener</title>
+  </head>
+  <body>
+    <div class="container">
+      <h1>URL Shrinker</h1>
+      <div class="my-4 form-inline">
+        <label for="url" class="sr-only">Url</label>
+        <input required placeholder="Url" type="url" name="url" id="url" class="form-control col mr-2" />
+        <button class="btn btn-success" type="submit" onclick="Create()">Shrink</button>
+      </div>
+      <div class="my-4 form-inline">
+        <label for="customeUrl" class="sr-only">Url</label>
+        <label for="name" class="sr-only">Custome name</label>
+        <input required placeholder="Url" type="url" name="customeUrl" id="customeUrl" class="form-control col mr-2" />
+        <input required placeholder="Custome name" name="name" id="name" class="form-control col mr-2" />
+        <button class="btn btn-success" type="submit" onclick="Custome()">Shrink</button>
+      </div>
+
+      <table class="table table-striped table-responsive" id="urlCollector">
+        <thead>
+          <tr>
+            <th>Full URL</th>
+            <th>Short URL</th>
+          </tr>
+        </thead>
+      </table>
+    </div>
+  </body>
+  <script>
+    const regex = /^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+$/;
+    logger();
+
+    async function Create() {
+      url = document.getElementById("url");
+
+      if (!regex.test(url?.value)) {
+        url.value = null;
+        alert("The url is not valid");
+        return;
+      }
+      let response = await fetch("http://localhost:3000/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(url.value),
+      });
+
+      response = await response.json();
+      if (response.status != 200) {
+        url.value = null;
+      } else {
+        urlCollector.innerHTML += `<tbody><tr>
+            <td><a href="${url.value}">${url.value}</a></td>
+            <td><a href="${response.data.url}">${response.data.shortUrl}</a></td>
+          </tr></tbody>`;
+
+        const urls = JSON.parse(window.localStorage.getItem("urls")) || [];
+        urls.push({ url: url.value, shortUrl: response.data.shortUrl, redirect: response.data.url });
+        window.localStorage.setItem("urls", JSON.stringify(urls));
+        url.value = null;
+      }
+    }
+    async function Custome() {
+      url = document.getElementById("customeUrl");
+      customeName = document.getElementById("name");
+
+      if (!regex.test(url?.value) || customeName?.value?.length > 10 || !customeName?.value) {
+        url.value = null;
+        customeName.value = null;
+        alert("The url is not valid or custome url name is longer than 10 characters or not exist");
+        return;
+      }
+
+      let response = await fetch("http://localhost:3000/create/custome", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ link: url.value, name: customeName.value }),
+      });
+      response = await response.json();
+
+      if (response.status != 200) {
+        url.value = null;
+        customeName.value = null;
+        alert("The custome name of url is exist");
+        return;
+      } else {
+        urlCollector.innerHTML += `<tbody><tr>
+            <td><a href="${url.value}">${url.value}</a></td>
+            <td><a href="${response.data.url}">${response.data.shortUrl}</a></td>
+          </tr></tbody>`;
+
+        const urls = JSON.parse(window.localStorage.getItem("urls")) || [];
+        urls.push({ url: url.value, shortUrl: response.data.shortUrl, redirect: response.data.url });
+        window.localStorage.setItem("urls", JSON.stringify(urls));
+
+        url.value = null;
+        customeName.value = null;
+      }
+    }
+    function logger() {
+      const urls = JSON.parse(window.localStorage.getItem("urls")) || [];
+
+      for (let el of urls) {
+        urlCollector.innerHTML += `<tbody><tr>
+            <td><a href="${el.url}">${el.url}</a></td>
+            <td><a href="${el.redirect}">${el.shortUrl}</a></td>
+          </tr></tbody>`;
+      }
+    }
+  </script>
+</html>
